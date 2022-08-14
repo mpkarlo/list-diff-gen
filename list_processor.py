@@ -13,8 +13,11 @@ class GooeySetProcessor:
         self.app.set_row_weights(1, 0, 1)
         self.app.width, self.app.height = 600, 800
 
-        self.open_file_win = gp.OpenFileWindow(self.app, 'Open text file ...')
+        self.open_file_win = gp.OpenFileWindow(self.app, 'Open text file...')
         self.open_file_win.set_initial_folder('Desktop')
+
+        self.save_file_win = gp.SaveFileWindow(self.app, 'Save Results file...')
+        self.save_file_win.set_initial_folder('Desktop')
 
         self._setup_input_ui()
         self._setup_ops_ui()
@@ -25,9 +28,17 @@ class GooeySetProcessor:
     def _setup_output_ui(self):
         # Add UI for output.
         self.output_container = gp.LabelContainer(self.app, 'Output')
-        self.output_container.set_grid(1, 1)
+        self.output_container.set_grid(2, 1)
+        self.output_container.set_row_weights(1, 0)
+
         self.result_tbx = gp.Textbox(self.output_container)
         self.output_container.add(self.result_tbx, 1, 1, fill=True, stretch=True)
+
+        # Add Button for saving results.
+        self.save_btn = gp.Button(self.output_container, 'Save Results as File',
+                                  None)
+        self.output_container.add(self.save_btn, 2, 1, align='center')
+
         self.app.add(self.output_container, 3, 1, fill=True, stretch=True)
 
     def _setup_ops_ui(self):
@@ -88,40 +99,42 @@ class GooeySetProcessor:
         self.app.add(self.input_container, 1, 1, fill=True, stretch=True)
 
     def _union(self, event):
-        """Perform the union of the sets of lines in both textboxes."""
-        set_a = set(self.set_a_tbx.text.split('\n'))
-        set_b = set(self.set_b_tbx.text.split('\n'))
+        """Perform union on the sets of line items in both inputs."""
+        set_a, set_b = self._read_sets()
 
         result_set = set_a.union(set_b)
-        result_txt = '\n'.join(sorted(result_set))
-
-        self.result_tbx.text = result_txt
+        self._write_results(result_set)
 
     def _intersect(self, event):
-        set_a = set(self.set_a_tbx.text.split('\n'))
-        set_b = set(self.set_b_tbx.text.split('\n'))
+        """Perform intersect on sets of line items in both inputs."""
+        set_a, set_b = self._read_sets()
 
         result_set = set_a.intersection(set_b)
-        result_txt = '\n'.join(sorted(result_set))
-
-        self.result_tbx.text = result_txt
+        self._write_results(result_set)
 
     def _diff_a(self, event):
-        set_a = set(self.set_a_tbx.text.split('\n'))
-        set_b = set(self.set_b_tbx.text.split('\n'))
+        """Perform difference on sets of line items in both inputs.
+            A - B"""
+        set_a, set_b = self._read_sets()
 
         result_set = set_a.difference(set_b)
-        result_txt = '\n'.join(sorted(result_set))
-
-        self.result_tbx.text = result_txt
+        self._write_results(result_set)
 
     def _diff_b(self, event):
-        set_a = set(self.set_a_tbx.text.split('\n'))
-        set_b = set(self.set_b_tbx.text.split('\n'))
+        """Perform difference on sets of line items in both inputs.
+            B - A"""
+        set_a, set_b = self._read_sets()
 
         result_set = set_b.difference(set_a)
-        result_txt = '\n'.join(sorted(result_set))
+        self._write_results(result_set)
 
+    def _read_sets(self):
+        set_a = set(self.set_a_tbx.text.lower().split('\n'))
+        set_b = set(self.set_b_tbx.text.lower().split('\n'))
+        return set_a, set_b
+
+    def _write_results(self, result_set):
+        result_txt = '\n'.join(sorted(result_set))
         self.result_tbx.text = result_txt
 
     def _open_file_a(self, e):
@@ -144,11 +157,21 @@ class GooeySetProcessor:
                 with open(filepath, 'r') as file_obj:
                     csvreader = csv.reader(file_obj)
                     contents = [line[0] for line in csvreader]
-            except FileExistsError or FileNotFoundError:
+            except FileNotFoundError:
                 pass
             else:
                 self.set_b_inp.text = filepath
                 self.set_b_tbx.text = '\n'.join(contents)
+
+    def _save_file(self, e):
+        filepath = self.save_file_win.open()
+        if filepath:
+            try:
+                with open(filepath, 'w') as file_obj:
+                    file_obj.write(self.result_tbx.text)
+
+            except FileExistsError:
+                pass
 
 
 if __name__ == '__main__':
