@@ -9,8 +9,8 @@ class GooeySetProcessor:
     def __init__(self):
         """Initialize GooeyPieApp, create UI elements and run app."""
         self.app = gp.GooeyPieApp("Gooey Set Processor")
-        self.app.set_grid(3, 1)
-        self.app.set_row_weights(1, 0, 1)
+        self.app.set_grid(4, 1)
+        self.app.set_row_weights(1, 0, 1, 0)
         self.app.width, self.app.height = 600, 800
 
         self.open_file_win = gp.OpenFileWindow(self.app, 'Open text file...')
@@ -22,8 +22,37 @@ class GooeySetProcessor:
         self._setup_input_ui()
         self._setup_ops_ui()
         self._setup_output_ui()
+        self._setup_stats_ui()
+
+        self.set_a_tbx.add_event_listener('change',
+                                          lambda e: self._update_stats(e))
 
         self.app.run()
+
+    def _setup_stats_ui(self):
+        # total a, total b, union total, intersect total,
+        self.stats_container = gp.LabelContainer(self.app, 'Stats')
+        self.stats_container.set_grid(2, 3)
+
+        self.total_a_lbl = gp.Label(self.stats_container, 'TOTAL A: 0')
+        self.stats_container.add(self.total_a_lbl, 1, 1)
+
+        self.total_b_lbl = gp.Label(self.stats_container, 'TOTAL B: 0')
+        self.stats_container.add(self.total_b_lbl, 1, 2)
+
+        self.total_union_lbl = gp.Label(self.stats_container, '∪ ∙ UNION: 0')
+        self.stats_container.add(self.total_union_lbl, 1, 3)
+
+        self.total_inter_lbl = gp.Label(self.stats_container, '∩ ∙ INTER: 0')
+        self.stats_container.add(self.total_inter_lbl, 2, 1)
+
+        self.total_diff_a_lbl = gp.Label(self.stats_container, 'A - B ∙ DIFF: 0')
+        self.stats_container.add(self.total_diff_a_lbl, 2, 2)
+
+        self.total_diff_b_lbl = gp.Label(self.stats_container, 'B - A ∙ DIFF: 0')
+        self.stats_container.add(self.total_diff_b_lbl, 2, 3)
+
+        self.app.add(self.stats_container, 4, 1, fill=True)
 
     def _setup_output_ui(self):
         # Add UI for output.
@@ -128,6 +157,16 @@ class GooeySetProcessor:
         result_set = set_b.difference(set_a)
         self._write_results(result_set)
 
+    def _update_stats(self, event):
+        """Update the stats."""
+        a, b = self._read_sets()
+        self.total_a_lbl.text = f'TOTAL A: {len(a):,}'
+        self.total_b_lbl.text = f'TOTAL B: {len(b):,}'
+        self.total_union_lbl.text = f'∪ ∙ UNION: {len(a.union(b)):,}'
+        self.total_inter_lbl.text = f'∩ ∙ INTER: {len(a.intersection(b)):,}'
+        self.total_diff_a_lbl.text = f'A - B ∙ DIFF: {len(a.difference(b)):,}'
+        self.total_diff_b_lbl.text = f'B - A ∙ DIFF: {len(b.difference(a)):,}'
+
     def _read_sets(self):
         set_a = set(self.set_a_tbx.text.lower().split('\n'))
         set_b = set(self.set_b_tbx.text.lower().split('\n'))
@@ -149,6 +188,7 @@ class GooeySetProcessor:
             else:
                 self.set_a_inp.text = filepath
                 self.set_a_tbx.text = '\n'.join(contents)
+                self._update_stats(None)
 
     def _open_file_b(self, e):
         filepath = self.open_file_win.open()
@@ -162,6 +202,7 @@ class GooeySetProcessor:
             else:
                 self.set_b_inp.text = filepath
                 self.set_b_tbx.text = '\n'.join(contents)
+                self._update_stats(None)
 
     def _save_file(self, e):
         filepath = self.save_file_win.open()
